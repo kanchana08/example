@@ -121,4 +121,58 @@ pipeline {
 
 
 
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        // snykTokenId = credentials('snyk-api-token')
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    // place other parameters here
+                )
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post { 
+        success { 
+            archiveArtifacts artifacts: 'snyk_reports.html', allowEmptyArchive: true
+
+            emailext(
+                to: 'kanchanagm@stellaripl.com',
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
+                         More info can be found here: ${env.BUILD_URL}""",
+                attachLog: true,
+                attachmentsPattern: 'snyk_reports.html'
+            )
+        }
+    }
+}
 
