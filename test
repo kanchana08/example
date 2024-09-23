@@ -119,3 +119,5 @@ pipeline {
         }
     }
 }
+
+ERROR: Error accessing files to attach: Expecting Ant GLOB pattern, but saw '/var/lib/jenkins/workspace/snyk-email/*.html'. See https://ant.apache.org/manual/Types/fileset.html for syntax
