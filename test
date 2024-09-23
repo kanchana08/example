@@ -60,11 +60,11 @@ pipeline {
 }
 
 
-
 pipeline {
     agent any
-    tools {nodejs "npm"}
+    tools { nodejs "npm" }
     environment {
+        // snykTokenId = credentials('snyk-api-token') 
         SNYK_API = "${env.SNYK_API}"  
     }
 
@@ -87,7 +87,7 @@ pipeline {
                 snykSecurity(
                     snykInstallation: 'snyk@latest',
                     snykTokenId: 'snyk-token',
-                    // Additional parameters as needed
+                    // place other parameters here
                 )
             }
         }
@@ -101,17 +101,24 @@ pipeline {
     
     post {
         success {
-            // Send email with Snyk report attached
-            emailext (
-                to: "kanchanagm@stellaripl.com",
-                subject: "Jenkins build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
-                         More Info can be found here: ${env.BUILD_URL}""",
-                attachmentsPattern: '**/snyk_reports.html', // Assuming the Snyk report is saved with this name
-                mimeType: 'text/html' // Set MIME type for the attachment if needed
-            )
+            script {
+                def reportFile = 'path/to/snyk_reports.html'
+                if (fileExists(reportFile)) {
+                    emailext(
+                        to: 'kanchanagm@stellaripl.com',
+                        subject: "Jenkins build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
+                        body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}",
+                        attachFiles: reportFile
+                    )
+                } else {
+                    echo "Snyk report file not found"
+                }
+            }
         }
     }
 }
+
+
+
 
 
