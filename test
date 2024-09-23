@@ -117,3 +117,43 @@ pipeline {
     }
 }
 
+
+
+
+pipeline {
+    agent any
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/your-repo.git'
+            }
+        }
+        stage('Run Snyk Test') {
+            steps {
+                sh 'snyk test --all-projects --json-file-output=snyk-report.json'
+            }
+        }
+        stage('Archive Snyk Report') {
+            steps {
+                archiveArtifacts artifacts: 'snyk-report.json', fingerprint: true
+            }
+        }
+        stage('Send Email with Snyk Report') {
+            steps {
+                emailext(
+                    subject: "Snyk Security Report - Build #${currentBuild.number}",
+                    body: "Please find the Snyk security report attached.",
+                    to: 'recipient@example.com',
+                    attachmentsPattern: 'snyk-report.json',
+                    attachLog: true
+                )
+            }
+        }
+    }
+    post {
+        success {
+            // Additional steps after a successful build
+        }
+        failure {
+            // Additional steps after a failed build
+
