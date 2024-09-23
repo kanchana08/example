@@ -64,4 +64,23 @@ pipeline {
 Archiving artifacts
 No artifacts found that match the file pattern "**/snyk_reports.html". Configuration error?
 
+post { 
+    success { 
+        script {
+            // List files in the workspace for debugging
+            sh 'ls -R'
+            
+            // Archive the Snyk report
+            archiveArtifacts artifacts: '**/snyk_reports.html', allowEmptyArchive: true
+            
+            // Send email with attachment
+            emailext(
+                to: "kanchanagm@stellaripl.com",
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}", 
+                body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}", 
+                attachmentsPattern: "**/snyk_reports.html"
+            )
+        }
+    } 
+}
 
