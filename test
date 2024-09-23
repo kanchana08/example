@@ -84,3 +84,36 @@ post {
     } 
 }
 
+
+
+
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                // Your build steps here
+            }
+        }
+        stage('Send Email') {
+            steps {
+                emailext(
+                    subject: "Build #${currentBuild.number} - ${currentBuild.result}",
+                    body: "Please find the build artifacts attached.",
+                    to: 'recipient@example.com',
+                    attachmentsPattern: '**/path/to/artifacts/*',
+                    attachLog: true
+                )
+            }
+        }
+    }
+    post {
+        success {
+            // Additional steps after a successful build
+        }
+        failure {
+            // Additional steps after a failed build
+        }
+    }
+}
+
