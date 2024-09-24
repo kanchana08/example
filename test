@@ -139,3 +139,6 @@ pipeline {
     }
 }
 
+Running Snyk tests and saving to: 2024-09-24T12-12-42_snyk_report.json
+[Pipeline] sh
++ snyk test --json
