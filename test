@@ -135,4 +135,5 @@ pipeline {
     }
 }
 
-
++ snyk test --json
+/var/lib/jenkins/workspace/snyk-email@tmp/durable-5722a5a2/script.sh.copy: 1: snyk: not found
