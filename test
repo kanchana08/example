@@ -58,3 +58,72 @@ pipeline {
         } 
 }
 }
+
+
+
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    // Ensure Snyk generates a report in HTML format
+                    additionalArguments: '--report --report-file=snyk_report.html'
+                )
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                echo 'Archiving Snyk Report...'
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Sending email with Snyk report...'
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
+                 attachmentsPattern: 'snyk_report.html'
+        }
+
+        failure {
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
+        }
+    }
+}
