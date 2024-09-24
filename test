@@ -2,6 +2,54 @@ pipeline {
     agent any
     tools {nodejs "npm"}
     environment {
+     //   snykTokenId = credentials('snyk-api-token') 
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                    
+          git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+
+                
+
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+
+            }
+        }
+        stage('Test') {
+      steps {
+        echo 'Testing...'
+        snykSecurity(
+          snykInstallation: 'snyk@latest',
+          snykTokenId: 'snyk-token',
+          // place other parameters here
+        )
+      }
+    }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+}
+
+
+
+
+pipeline {
+    agent any
+    tools {nodejs "npm"}
+    environment {
         SNYK_API = "${env.SNYK_API}"  
     }
 
@@ -72,3 +120,7 @@ pipeline {
         }
     }
 }
+
+
++ snyk test --json
+/var/lib/jenkins/workspace/snyk-email@tmp/durable-c40605c9/script.sh.copy: 1: snyk: not found
