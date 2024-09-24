@@ -62,365 +62,33 @@ pipeline {
 
 
 
+
 pipeline {
     agent any
-    tools { nodejs "npm" }
+    tools {nodejs "npm"}
     environment {
+     //   snykTokenId = credentials('snyk-api-token') 
         SNYK_API = "${env.SNYK_API}"  
     }
 
     stages {
         stage('checkout') {
             steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+                    
+          git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+
+                
+
             }
         }
-
         stage('Build') {
             steps {
                 echo 'Building...'
                 sh "npm install"
                 sh "npm run build"
+
             }
         }
-
-        stage('Test') {
-            steps {
-                echo 'Testing...'
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    // Ensure Snyk generates a report in HTML format
-                    additionalArguments: '--report --report-file=snyk_report.html'
-                )
-            }
-        }
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Sending email with Snyk report...'
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
-                 attachmentsPattern: 'snyk_report.html'
-        }
-
-        failure {
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
-        }
-    }
-}
-
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"  
-    }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Testing...'
-                // Run Snyk Security and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    additionalArguments: '--json-file-output=snyk_report.json'
-                )
-
-                // Convert Snyk JSON report to HTML using snyk-to-html tool
-                sh '''
-                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i snyk_report.json -o snyk_report.html
-                '''
-            }
-        }
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Sending email with Snyk report...'
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
-                 attachmentsPattern: 'snyk_report.html'
-        }
-
-        failure {
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
-        }
-    }
-}
-
-
-
-Generating report...
-> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-24T07-34-57-452319208Z_snyk_report.json
-Archiving artifacts
-Monitoring project...
-> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low --json-file-output=snyk_report.json
-The following option combination is not currently supported: monitor + json-file-output
-Failed to monitor project. (Exit Code: 2)
-FATAL: Snyk Security scan failed.
-java.lang.RuntimeException: Failed to monitor project. (Exit Code: 2)
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"  
-    }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                // Run Snyk Security test and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    additionalArguments: '--json-file-output=snyk_report.json'
-                )
-
-                // Convert Snyk JSON report to HTML using snyk-to-html tool
-                sh '''
-                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i snyk_report.json -o snyk_report.html
-                '''
-            }
-        }
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Sending email with Snyk report...'
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
-                 attachmentsPattern: 'snyk_report.html'
-        }
-
-        failure {
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
-        }
-    }
-}
-
-
-
-
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"  
-    }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                // Run Snyk Security test and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    additionalArguments: '--json-file-output=snyk_report.json'
-                )
-
-                // Convert Snyk JSON report to HTML using snyk-to-html tool
-                sh '''
-                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i snyk_report.json -o snyk_report.html
-                '''
-            }
-        }
-
-        stage('Monitor Project') {
-            steps {
-                echo 'Monitoring project...'
-                // Monitor without the json-file-output option
-                sh '''
-                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
-                '''
-            }
-        }
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Sending email with Snyk report...'
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
-                 attachmentsPattern: 'snyk_report.html'
-        }
-
-        failure {
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
-        }
-    }
-}
-
-
-+ /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i snyk_report.json -o snyk_report.html
-Vulnerability snapshot saved at snyk_report.html
-[Pipeline] }
-[Pipeline] // withEnv
-[Pipeline] }
-[Pipeline] // stage
-[Pipeline] stage
-[Pipeline] { (Monitor Project)
-[Pipeline] tool
-[Pipeline] envVarsForTool
-[Pipeline] withEnv
-[Pipeline] {
-[Pipeline] echo
-Monitoring project...
-[Pipeline] sh
-+ /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
-`snyk` requires an authenticated account. Please run `snyk auth` and try again.
-
-
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = credentials('snyk-token') // Ensure this is configured as a Jenkins secret
-    }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-
-        stage('Authenticate Snyk') {
-            steps {
-                echo 'Authenticating with Snyk...'
-                // Authenticate Snyk using the API token from Jenkins credentials
-                sh "snyk auth ${SNYK_API}"
-            }
-        }
-
         stage('Test') {
             steps {
                 echo 'Running Snyk Test...'
@@ -433,15 +101,7 @@ pipeline {
             }
         }
 
-        stage('Monitor Project') {
-            steps {
-                echo 'Monitoring project...'
-                // Monitor the project without json-file-output
-                sh '''
-                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
-                '''
-            }
-        }
+
 
         stage('Archive Report') {
             steps {
@@ -450,6 +110,8 @@ pipeline {
             }
         }
 
+
+     
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
@@ -457,58 +119,12 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            echo 'Sending email with Snyk report...'
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
-                 attachmentsPattern: 'snyk_report.html'
-        }
-
-        failure {
-            mail to: "kanchanagm@stellaripl.com",
-                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
-        }
-    }
-}
-
-
-
-post {
+  post {
     success {
         echo 'Sending email with Snyk report content...'
-        
+        script{
         // Read the Snyk report HTML content
-        def reportContent = readFile('snyk_report.html')
-
-        // Send email with report content in the body
-        emailext (
-            to: "kanchanagm@stellaripl.com",
-            subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
-            body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}\n\nReport Content:\n${reportContent}",
-            mimeType: 'text/html' // Send as HTML
-        )
-    }
-
-    failure {
-        emailext (
-            to: "kanchanagm@stellaripl.com",
-            subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-            body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}",
-            mimeType: 'text/html'
-        )
-    }
-}
-
-
-post {
-    success {
-        echo 'Sending email with Snyk report link...'
-        
-        // Generate a link to the report in Jenkins
+       // Generate a link to the report in Jenkins
         def reportLink = "${env.BUILD_URL}artifact/snyk_report.html"
 
         // Send email with a link to the report
@@ -524,12 +140,20 @@ post {
         )
     }
 
-    failure {
-        emailext (
-            to: "kanchanagm@stellaripl.com",
-            subject: "Jenkins Build Failed: ${env.JOB_NAME}",
-            body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}",
-            mimeType: 'text/html'
-        )
     }
+  }
 }
+  
+    
+
+         
+
+   
+
+
+
+
+
+
+
+
