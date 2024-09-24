@@ -148,7 +148,28 @@ pipeline {
 
          
 
-   
+  post {
+    success {
+        echo 'Sending email with Snyk report link...'
+        script {
+            // Generate a link to the report in Jenkins
+            def reportLink = "${env.BUILD_URL}artifact/snyk_report.html"
+
+            // Send email with a link to the report
+            emailext (
+                to: "kanchanagm@stellaripl.com", // Ensure this email is correct
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                body: """
+                    ${currentBuild.currentResult}: Job ${env.JOB_NAME}<br>
+                    More info: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a><br>
+                    View the Snyk report here: <a href="${reportLink}">Snyk Report</a>
+                """,
+                mimeType: 'text/html' // Send as HTML
+            )
+        }
+    }
+}
+ 
 
 
 
