@@ -127,3 +127,37 @@ pipeline {
         }
     }
 }
+
+
+Testing...
+[Pipeline] snykSecurity
+Testing project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --report --report-file=snyk_report.html
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-24T07-24-42-255405530Z_snyk_report.json
+Archiving artifacts
+Monitoring project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low --report --report-file=snyk_report.html
+
+Monitoring /var/lib/jenkins/workspace/snyk-email (angular.io-example)...
+
+Explore this snapshot at https://app.snyk.io/org/stellar_org/project/dff06cd3-c7d1-402d-909d-465d57fa5124/history/40830535-3074-4410-8eba-7cf96e8052de
+
+Notifications about newly disclosed issues related to these dependencies will be emailed to you.
+
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Archive Report)
+[Pipeline] tool
+[Pipeline] envVarsForTool
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] echo
+Archiving Snyk Report...
+[Pipeline] archiveArtifacts
+Archiving artifacts
+‘snyk_report.html’ doesn’t match anything
+No artifacts found that match the file pattern "snyk_report.html". Configuration error?
