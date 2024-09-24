@@ -121,6 +121,10 @@ pipeline {
     }
 }
 
++ snyk-to-html -i snyk-report.json -o snyk-report.html
+The source provided is not a valid json! Please validate that the input provided to the CLI is an actual JSON
 
-+ snyk test --json
-/var/lib/jenkins/workspace/snyk-email@tmp/durable-c40605c9/script.sh.copy: 1: snyk: not found
+Tip: To find more information, try running `snyk-to-html` in debug mode by appending to the CLI the `-d` parameter
+
+Error running `snyk-to-html`. Please check you are providing the correct parameters. Is the issue persists contact support@snyk.io
+
