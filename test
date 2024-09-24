@@ -44,3 +44,104 @@ pipeline {
 }
 
 
+
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"
+        // Adding npm global path explicitly (you may need to adjust this path based on your environment)
+        PATH = "/var/lib/jenkins/.npm-global/bin:${env.PATH}"
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Install Snyk') {
+            steps {
+                echo 'Installing Snyk...'
+                
+                // Installing Snyk globally
+                sh "npm install -g snyk"
+                sh "npm install -g snyk-to-html"
+                
+                // Verifying installation and Snyk path
+                sh "which snyk"
+                sh "snyk --version"
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                script {
+                    // Create a timestamped filename in Groovy
+                    def timestamp = new Date().format("yyyy-MM-dd'T'HH-mm-ss")
+                    def snykReportFile = "${timestamp}_snyk_report.json"
+                    
+                    echo "Running Snyk tests and saving to: ${snykReportFile}"
+                    
+                    // Running Snyk Security Test
+                    sh "snyk test --json > ${snykReportFile}"
+                    
+                    // Check if report was generated and convert it to HTML
+                    if (fileExists(snykReportFile)) {
+                        echo "Snyk report generated: ${snykReportFile}"
+                        
+                        // Convert JSON report to HTML
+                        sh "snyk-to-html -i ${snykReportFile} -o snyk-report.html"
+                        
+                        // Archive the HTML report
+                        archiveArtifacts artifacts: 'snyk-report.html', allowEmptyArchive: false
+                    } else {
+                        error "Snyk report was not generated!"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+    
+    post { 
+        success { 
+            // Send email with Snyk report attached
+            emailext(
+                to: "kanchanagm@stellaripl.com", 
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}", 
+                body: """Build Result: ${currentBuild.currentResult} 
+                Job: ${env.JOB_NAME}
+                Build URL: ${env.BUILD_URL}
+
+                Please find the Snyk security report attached.""",
+                attachmentsPattern: 'snyk-report.html'
+            ) 
+        }
+        failure {
+            emailext(
+                to: "kanchanagm@stellaripl.com",
+                subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                body: "The Jenkins build for job ${env.JOB_NAME} has failed. Please check the console output for more details: ${env.BUILD_URL}"
+            )
+        }
+    }
+}
+
+
