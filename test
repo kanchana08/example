@@ -1,4 +1,4 @@
-pipeline {
+upipeline {
     agent any
     tools {nodejs "npm"}
     environment {
@@ -121,3 +121,80 @@ pipeline {
 }
 
 ERROR: Error accessing files to attach: Expecting Ant GLOB pattern, but saw '/var/lib/jenkins/workspace/snyk-email/*.html'. See https://ant.apache.org/manual/Types/fileset.html for syntax
+
+
+
+pipeline {
+    agent any
+    tools {nodejs "npm"}
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+                
+                // Running Snyk Security Test
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token'
+                )
+                
+                // Save Snyk report in JSON format
+                sh 'snyk test --json > snyk-report.json'
+                
+                // Convert JSON report to HTML (using snyk-to-html)
+                sh 'snyk-to-html -i snyk-report.json -o snyk-report.html'
+                
+                // Archive the HTML report as a Jenkins artifact
+                archiveArtifacts artifacts: 'snyk-report.html', allowEmptyArchive: false
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+    
+    post { 
+        success { 
+            // Send email with Snyk report attached
+            emailext(
+                to: "kanchanagm@stellaripl.com", 
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}", 
+                body: """Build Result: ${currentBuild.currentResult} 
+                Job: ${env.JOB_NAME}
+                Build URL: ${env.BUILD_URL}
+
+                Please find the Snyk security report attached.""",
+                attachmentsPattern: 'snyk-report.html'  // Attaching the Snyk report
+            ) 
+        }
+        failure {
+            emailext(
+                to: "kanchanagm@stellaripl.com",
+                subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                body: "The Jenkins build for job ${env.JOB_NAME} has failed. Please check the console output for more details: ${env.BUILD_URL}"
+            )
+        }
+    }
+}
