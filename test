@@ -474,3 +474,62 @@ pipeline {
         }
     }
 }
+
+
+
+post {
+    success {
+        echo 'Sending email with Snyk report content...'
+        
+        // Read the Snyk report HTML content
+        def reportContent = readFile('snyk_report.html')
+
+        // Send email with report content in the body
+        emailext (
+            to: "kanchanagm@stellaripl.com",
+            subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+            body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}\n\nReport Content:\n${reportContent}",
+            mimeType: 'text/html' // Send as HTML
+        )
+    }
+
+    failure {
+        emailext (
+            to: "kanchanagm@stellaripl.com",
+            subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+            body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}",
+            mimeType: 'text/html'
+        )
+    }
+}
+
+
+post {
+    success {
+        echo 'Sending email with Snyk report link...'
+        
+        // Generate a link to the report in Jenkins
+        def reportLink = "${env.BUILD_URL}artifact/snyk_report.html"
+
+        // Send email with a link to the report
+        emailext (
+            to: "kanchanagm@stellaripl.com",
+            subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+            body: """
+                ${currentBuild.currentResult}: Job ${env.JOB_NAME}\n
+                More info: ${env.BUILD_URL}\n
+                View the Snyk report here: <a href="${reportLink}">Snyk Report</a>
+            """,
+            mimeType: 'text/html' // Send as HTML
+        )
+    }
+
+    failure {
+        emailext (
+            to: "kanchanagm@stellaripl.com",
+            subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+            body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}",
+            mimeType: 'text/html'
+        )
+    }
+}
