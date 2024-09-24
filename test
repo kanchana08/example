@@ -387,3 +387,90 @@ Monitoring project...
 [Pipeline] sh
 + /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
 `snyk` requires an authenticated account. Please run `snyk auth` and try again.
+
+
+
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = credentials('snyk-token') // Ensure this is configured as a Jenkins secret
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Authenticate Snyk') {
+            steps {
+                echo 'Authenticating with Snyk...'
+                // Authenticate Snyk using the API token from Jenkins credentials
+                sh "snyk auth ${SNYK_API}"
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test and output report in workspace
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    additionalArguments: '--report --report-file=snyk_report.html'
+                )
+            }
+        }
+
+        stage('Monitor Project') {
+            steps {
+                echo 'Monitoring project...'
+                // Monitor the project without json-file-output
+                sh '''
+                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
+                '''
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                echo 'Archiving Snyk Report...'
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Sending email with Snyk report...'
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
+                 attachmentsPattern: 'snyk_report.html'
+        }
+
+        failure {
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
+        }
+    }
+}
