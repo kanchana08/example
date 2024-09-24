@@ -212,4 +212,74 @@ The following option combination is not currently supported: monitor + json-file
 Failed to monitor project. (Exit Code: 2)
 FATAL: Snyk Security scan failed.
 java.lang.RuntimeException: Failed to monitor project. (Exit Code: 2)
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test and output report in workspace
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    additionalArguments: '--json-file-output=snyk_report.json'
+                )
+
+                // Convert Snyk JSON report to HTML using snyk-to-html tool
+                sh '''
+                    /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i snyk_report.json -o snyk_report.html
+                '''
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                echo 'Archiving Snyk Report...'
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Sending email with Snyk report...'
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                 body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore info: ${env.BUILD_URL}",
+                 attachmentsPattern: 'snyk_report.html'
+        }
+
+        failure {
+            mail to: "kanchanagm@stellaripl.com",
+                 subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                 body: "Build failed for job ${env.JOB_NAME}. Check the logs at: ${env.BUILD_URL}"
+        }
+    }
+}
 
