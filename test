@@ -203,3 +203,13 @@ pipeline {
 
 
 
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-24T07-34-57-452319208Z_snyk_report.json
+Archiving artifacts
+Monitoring project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low --json-file-output=snyk_report.json
+The following option combination is not currently supported: monitor + json-file-output
+Failed to monitor project. (Exit Code: 2)
+FATAL: Snyk Security scan failed.
+java.lang.RuntimeException: Failed to monitor project. (Exit Code: 2)
+
