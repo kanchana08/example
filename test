@@ -128,3 +128,94 @@ Tip: To find more information, try running `snyk-to-html` in debug mode by appen
 
 Error running `snyk-to-html`. Please check you are providing the correct parameters. Is the issue persists contact support@snyk.io
 
+
+
+
+
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Install Snyk') {
+            steps {
+                // Installing Snyk globally
+                echo 'Installing Snyk...'
+                sh "npm install -g snyk"
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Running Snyk tests...'
+                
+                // Running Snyk Security Test and saving output to JSON
+                sh 'snyk test --json > snyk-report.json'
+                
+                // Debugging: Display the contents of snyk-report.json
+                sh 'cat snyk-report.json'
+
+                // Validate if JSON is empty or not
+                script {
+                    def report = readFile('snyk-report.json')
+                    if (report?.trim()) {
+                        // Convert JSON report to HTML (if not empty)
+                        sh 'npm install -g snyk-to-html'
+                        sh 'snyk-to-html -i snyk-report.json -o snyk-report.html'
+                        archiveArtifacts artifacts: 'snyk-report.html', allowEmptyArchive: false
+                    } else {
+                        echo "Snyk report JSON is empty or invalid!"
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+    
+    post { 
+        success { 
+            // Send email with Snyk report attached (if report exists)
+            emailext(
+                to: "kanchanagm@stellaripl.com", 
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}", 
+                body: """Build Result: ${currentBuild.currentResult} 
+                Job: ${env.JOB_NAME}
+                Build URL: ${env.BUILD_URL}
+
+                Please find the Snyk security report attached.""",
+                attachmentsPattern: 'snyk-report.html'  // Attaching the Snyk report if it exists
+            ) 
+        }
+        failure {
+            emailext(
+                to: "kanchanagm@stellaripl.com",
+                subject: "Jenkins Build Failed: ${env.JOB_NAME}",
+                body: "The Jenkins build for job ${env.JOB_NAME} has failed. Please check the console output for more details: ${env.BUILD_URL}"
+            )
+        }
+    }
+}
