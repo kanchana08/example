@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
     tools {nodejs "npm"}
@@ -19,6 +18,8 @@ pipeline {
         }
         stage('Build') {
             steps {
+                //sh "rm -rf *"
+                //sh "ls"
                 echo 'Building...'
                 sh "npm install"
                 sh "npm run build"
@@ -26,125 +27,15 @@ pipeline {
             }
         }
         stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                // Run Snyk Security test and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    
-                )
-            }
-        }
-stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
+      steps {
+        echo 'Testing...'
+        snykSecurity(
+          snykInstallation: 'snyk@latest',
+          snykTokenId: 'snyk-token',
+           //place other parameters here
+       )
+      }
     }
-    
-    Snyk test report
-September 25th 2024, 5:31:01 am (UTC+00:00)
-
-Scanned the following path:
-/var/lib/jenkins/workspace/snyk-email/package-lock.json (npm)
-0 known vulnerabilities
-0 vulnerable dependency paths
-12 dependencies
-Project	angular.io-example
-Path	/var/lib/jenkins/workspace/snyk-email
-Package Manager	npm
-Manifest	package-lock.json
-No known vulnerabilities detected.      
-         
-  
-  Testing project...
-> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low
-Generating report...
-> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-25T06-13-36-437552941Z_snyk_report.json
-Archiving artifacts
-Monitoring project...
-> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
-
-Monitoring /var/lib/jenkins/workspace/snyk-email (angular.io-example)...
-
-Explore this snapshot at https://app.snyk.io/org/stellar_org/project/dff06cd3-c7d1-402d-909d-465d57fa5124/history/34c88059-c927-45b2-983e-9305074f3349
-
-Notifications about newly disclosed issues related to these dependencies will be emailed to you.
-
-[Pipeline] archiveArtifacts
-Archiving artifacts
-‘snyk_report.html’ doesn’t match anything
-No artifacts found that match the file pattern "snyk_report.html". Configuration error?
-
-
-
-+ find . -name *_snyk_report.json
-[Pipeline] echo
-JSON Report File: 
-[Pipeline] sh
-+ /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i -o snyk_report.html
-ENOENT: no such file or directory, open '-o'
-[Pipeline] sh
-+ ls -R
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"  
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                // Run Snyk Security test and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                )
-                
-                // List all files in the current directory to check if the JSON report exists
-                echo 'Listing files in the workspace:'
-                sh 'ls -R'
-
-                // Find the generated JSON report file
-                script {
-                    def jsonReportFile = sh(script: "find . -name '*_snyk_report.json'", returnStdout: true).trim()
-                    echo "JSON Report File: ${jsonReportFile}"
-
-                    // Check if the file was found
-                    if (jsonReportFile) {
-                        // Convert JSON report to HTML
-                        def htmlReportFile = "snyk_report.html"
-                        sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${jsonReportFile} -o ${htmlReportFile}"
-
-                        // List files again to confirm the report generation
-                        sh 'ls -R'
-                    } else {
-                        error "JSON report file not found!"
-                    }
-                }
-
-                // Archive the generated HTML report
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
@@ -152,22 +43,21 @@ pipeline {
             }
         }
     }
+         post{ 
 
-    post {
-        success {
-            // Send email with Snyk report as an attachment
-            emailext attachLog: true,
-                     attachmentsPattern: 'snyk_report.html',
-                     subject: "Snyk Report - Build ${BUILD_NUMBER}",
-                     body: """
-                         Hello,
+          success{ 
 
-                         The Snyk security report for build #${BUILD_NUMBER} is attached.
+            mail to: "kanchanagm@stellaripl.com", 
 
-                         Regards,
-                         Jenkins
-                     """,
-                     to: 'recipient@example.com'
-        }
-    }
+             //cc: "nadimpali.pradeepk@stellaripl.com", 
+
+            subject: "jenkins build:${currentBuild.currentResult}: ${env.JOB_NAME}", 
+
+            body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}" 
+
+             
+
+        } 
 }
+}
+     
