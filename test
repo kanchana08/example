@@ -101,34 +101,6 @@ pipeline {
         }
     }
     
-    post {
-        success {
-            emailext (
-                subject: "Snyk Report - Build Successful",
-                body: """
-                    <p>Hi,</p>
-                    <p>The build has been successful. Please find the attached Snyk report for your reference.</p>
-                    <p>Regards,<br>Jenkins</p>
-                """,
-                to: 'recipient@example.com',
-                attachLog: true,
-                attachmentsPattern: 'snyk_report.html'
-            )
-        }
-        failure {
-            emailext (
-                subject: "Snyk Report - Build Failed",
-                body: """
-                    <p>Hi,</p>
-                    <p>The build has failed. Please find the attached Snyk report for details.</p>
-                    <p>Regards,<br>Jenkins</p>
-                """,
-                to: 'recipient@example.com',
-                attachLog: true,
-                attachmentsPattern: 'snyk_report.html'
-            )
-        }
-    }
-}
+   
        
          
