@@ -32,22 +32,11 @@ pipeline {
                 snykSecurity(
                     snykInstallation: 'snyk@latest',
                     snykTokenId: 'snyk-token',
-                    additionalArguments: '--report --report-file=snyk_report.html'
+                    
                 )
             }
         }
-
-
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-
-        stage('Deploy') {
+stage('Deploy') {
             steps {
                 echo 'Deploying...'
                 // Your deploy steps go here
