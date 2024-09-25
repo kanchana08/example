@@ -128,4 +128,23 @@ No known vulnerabilities detected.
     }
 }
    
-  
+  Running Snyk Test...
+[Pipeline] snykSecurity
+Testing project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-25T05-43-49-754105563Z_snyk_report.json
+Archiving artifacts
+Monitoring project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
+
+Monitoring /var/lib/jenkins/workspace/snyk-email (angular.io-example)...
+
+Explore this snapshot at https://app.snyk.io/org/stellar_org/project/dff06cd3-c7d1-402d-909d-465d57fa5124/history/4c0a3351-9c24-4cde-a30e-8a4081520010
+
+Notifications about newly disclosed issues related to these dependencies will be emailed to you.
+
+[Pipeline] sh
++ snyk test --json
+Post stage
+
