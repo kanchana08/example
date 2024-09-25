@@ -18,8 +18,6 @@ pipeline {
         }
         stage('Build') {
             steps {
-                //sh "rm -rf *"
-                //sh "ls"
                 echo 'Building...'
                 sh "npm install"
                 sh "npm run build"
@@ -27,15 +25,27 @@ pipeline {
             }
         }
         stage('Test') {
-      steps {
-        echo 'Testing...'
-        snykSecurity(
-          snykInstallation: 'snyk@latest',
-          snykTokenId: 'snyk-token',
-           //place other parameters here
-       )
-      }
-    }
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test and output report in workspace
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    additionalArguments: '--report --report-file=snyk_report.html'
+                )
+            }
+        }
+
+
+
+        stage('Archive Report') {
+            steps {
+                echo 'Archiving Snyk Report...'
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
@@ -43,7 +53,8 @@ pipeline {
             }
         }
     }
-         post{ 
+    
+           post{ 
 
           success{ 
 
@@ -53,7 +64,9 @@ pipeline {
 
             subject: "jenkins build:${currentBuild.currentResult}: ${env.JOB_NAME}", 
 
-            body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}" 
+            body: '${FILE,path="/var/lib/jenkins/workspace/snyk-email/snyk_report.html"}',
+            mimeType: 'text/html' // Send as HTML
+            //"${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}" 
 
              
 
@@ -62,210 +75,26 @@ pipeline {
 }
 
 
-+ /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=/var/lib/jenkins/workspace/snyk-email/snyk_report.json
-MissingApiTokenError: `snyk` requires an authenticated account. Please run `snyk auth` and try again.
-    at apiTokenExists (/snapshot/snyk/dist/cli/webpack:/snyk/src/lib/api-token.ts:22:11)
-    at validateCredentials (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/commands/test/validate-credentials.ts:10:19)
-    at test (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/commands/test/index.ts:81:22)
-    at callModule (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/commands/index.js:6:1)
-    at process.runNextTicks [as _tickCallback] (node:internal/process/task_queues:60:5)
-    at Function.runMain (pkg/prelude/bootstrap.js:1984:13)
-    at node:internal/main/run_main_module:17:47
-    at runCommand (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/main.ts:56:25)
-    at main (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/main.ts:343:11)
-    at /snapshot/snyk/dist/cli/webpack:/snyk/src/cli/index.ts:13:3
-    at callHandlingUnexpectedErrors (/snapshot/snyk/dist/cli/webpack:/snyk/src/lib/unexpected-error.ts:28:5)
+Testing project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-25T06-13-36-437552941Z_snyk_report.json
+Archiving artifacts
+Monitoring project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
 
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"  
-    }
+Monitoring /var/lib/jenkins/workspace/snyk-email (angular.io-example)...
 
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing...'
+Explore this snapshot at https://app.snyk.io/org/stellar_org/project/dff06cd3-c7d1-402d-909d-465d57fa5124/history/34c88059-c927-45b2-983e-9305074f3349
 
-                // Use Jenkins credentials for the Snyk API token
-                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
-                    // Run Snyk test and explicitly specify the JSON output location
-                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux auth ${SNYK_TOKEN}"
-                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=${WORKSPACE}/snyk_report.json"
+Notifications about newly disclosed issues related to these dependencies will be emailed to you.
 
-                    // Convert the Snyk JSON report to HTML
-                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${WORKSPACE}/snyk_report.json -o ${WORKSPACE}/snyk_report.html"
-                }
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
+[Pipeline] archiveArtifacts
+Archiving artifacts
+‘snyk_report.html’ doesn’t match anything
+No artifacts found that match the file pattern "snyk_report.html". Configuration error?
 
-    post {
-        success {
-            // Archive the Snyk HTML report
-            archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            
-            // Send the email with the HTML report attached
-            emailext(
-                to: 'kanchanagm@stellaripl.com',
-                subject: "Jenkins Build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
-                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
-                More Info can be found here: ${env.BUILD_URL}""",
-                attachLog: true,
-                attachmentsPattern: 'snyk_report.html'
-            )
-        }
-    }
-}
-
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing...'
-
-                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
-                    sh """
-                        export SNYK_TOKEN=${SNYK_TOKEN}
-                        /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=${WORKSPACE}/snyk_report.json
-                    """
-                    
-                    // Convert the JSON to HTML and specify the output path
-                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${WORKSPACE}/snyk_report.json -o ${WORKSPACE}/snyk_report.html"
-
-                    // List files in the workspace for confirmation
-                    sh "ls -la ${WORKSPACE}"
-                }
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-            }
-        }
-    }
-
-    post {
-        success {
-            // Archive the Snyk HTML report
-            archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-
-            // Send an email with the report attached
-            emailext(
-                to: 'kanchanagm@stellaripl.com',
-                subject: "Jenkins Build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
-                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
-                More Info can be found here: ${env.BUILD_URL}""",
-                attachLog: true,
-                attachmentsPattern: 'snyk_report.html'
-            )
-        }
-    }
-}
-
-
-
-2024-09-25T06-57-54-404790734Z_snyk_report.html
-
-
-pipeline {
-    agent any
-    tools { nodejs "npm" }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing...'
-
-                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
-                    // Define report filenames
-                    def jsonReportFile = "${WORKSPACE}/snyk_report.json"
-                    def htmlReportFile = "${WORKSPACE}/snyk_report.html"
-                    def timestampedHtmlReportFile = "${WORKSPACE}/${new Date().format('yyyy-MM-dd\'T\'HH-mm-ss-SSS')}_snyk_report.html"
-
-                    // Run Snyk test
-                    sh """
-                        export SNYK_TOKEN=${SNYK_TOKEN}
-                        /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=${jsonReportFile}
-                    """
-
-                    // Convert the JSON report to HTML
-                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${jsonReportFile} -o ${timestampedHtmlReportFile}"
-
-                    // List files in the workspace for confirmation
-                    sh "ls -la ${WORKSPACE}"
-                }
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-            }
-        }
-    }
-
-    post {
-        success {
-            // Archive the dynamically named Snyk HTML report
-            archiveArtifacts artifacts: '*_snyk_report.html', allowEmptyArchive: true
-
-            // Send an email with the latest report attached
-            emailext(
-                to: 'kanchanagm@stellaripl.com',
-                subject: "Jenkins Build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
-                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
-                More Info can be found here: ${env.BUILD_URL}""",
-                attachLog: true,
-                attachmentsPattern: '*_snyk_report.html'
-            )
-        }
-    }
-}
+Reports
+2024-09-25T06-13-41-183002339Z         
+         
+         
