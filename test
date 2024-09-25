@@ -60,4 +60,8 @@ pipeline {
         } 
 }
 }
-     
+
+
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-25T06-57-47-598752654Z_snyk_report.json
+2024-09-25T06-57-47-598752654Z_snyk_report.json
