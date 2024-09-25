@@ -202,3 +202,70 @@ pipeline {
 
 
 2024-09-25T06-57-54-404790734Z_snyk_report.html
+
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+
+                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
+                    // Define report filenames
+                    def jsonReportFile = "${WORKSPACE}/snyk_report.json"
+                    def htmlReportFile = "${WORKSPACE}/snyk_report.html"
+                    def timestampedHtmlReportFile = "${WORKSPACE}/${new Date().format('yyyy-MM-dd\'T\'HH-mm-ss-SSS')}_snyk_report.html"
+
+                    // Run Snyk test
+                    sh """
+                        export SNYK_TOKEN=${SNYK_TOKEN}
+                        /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=${jsonReportFile}
+                    """
+
+                    // Convert the JSON report to HTML
+                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${jsonReportFile} -o ${timestampedHtmlReportFile}"
+
+                    // List files in the workspace for confirmation
+                    sh "ls -la ${WORKSPACE}"
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+            }
+        }
+    }
+
+    post {
+        success {
+            // Archive the dynamically named Snyk HTML report
+            archiveArtifacts artifacts: '*_snyk_report.html', allowEmptyArchive: true
+
+            // Send an email with the latest report attached
+            emailext(
+                to: 'kanchanagm@stellaripl.com',
+                subject: "Jenkins Build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
+                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
+                More Info can be found here: ${env.BUILD_URL}""",
+                attachLog: true,
+                attachmentsPattern: '*_snyk_report.html'
+            )
+        }
+    }
+}
