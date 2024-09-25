@@ -1,1 +1,61 @@
 
+pipeline {
+    agent any
+    tools {nodejs "npm"}
+    environment {
+     //   snykTokenId = credentials('snyk-api-token') 
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                    
+          git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+
+                
+
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test and output report in workspace
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    additionalArguments: '--report --report-file=snyk_report.html'
+                )
+            }
+        }
+
+
+
+        stage('Archive Report') {
+            steps {
+                echo 'Archiving Snyk Report...'
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+    
+          
+         
+         
+         
