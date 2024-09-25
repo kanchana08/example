@@ -59,4 +59,68 @@ Manifest	package-lock.json
 No known vulnerabilities detected.      
          
   
-   
+   pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test and output report in workspace
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token'
+                )
+                // Assuming Snyk generates an HTML report named snyk_report.html
+                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Sending Snyk Report via Email...'
+            // Sending email after successful build with the Snyk report attached
+            emailext(
+                subject: "Snyk Security Report for Job: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                body: """
+                Hello,
+
+                Please find the attached Snyk Security report for the build job: ${env.JOB_NAME} [${env.BUILD_NUMBER}].
+
+                Best regards,
+                Jenkins CI
+                """,
+                to: 'recipient@example.com',
+                attachLog: true,
+                attachmentsPattern: 'snyk_report.html'
+            )
+        }
+    }
+}
+
