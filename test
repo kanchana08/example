@@ -60,5 +60,72 @@ No known vulnerabilities detected.
          
   
    
-       
+    pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Running Snyk Security test and saving the output
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                )
+                sh "snyk test --json > snyk-report.json"
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'snyk-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Add your deploy steps here
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext (
+                subject: "Snyk Test Report - ${currentBuild.fullDisplayName}",
+                body: """
+                    Snyk test report is attached.
+                    Here is a summary:
+
+                    Scanned the following path: /var/lib/jenkins/workspace/snyk-email/package-lock.json (npm)
+                    Project: angular.io-example
+                    Path: /var/lib/jenkins/workspace/snyk-email
+                    Package Manager: npm
+                    No known vulnerabilities detected.
+                """,
+                attachmentsPattern: "snyk-report.json",
+                to: 'recipient@example.com'
+            )
+        }
+    }
+}
+   
   
