@@ -75,3 +75,65 @@ MissingApiTokenError: `snyk` requires an authenticated account. Please run `snyk
     at main (/snapshot/snyk/dist/cli/webpack:/snyk/src/cli/main.ts:343:11)
     at /snapshot/snyk/dist/cli/webpack:/snyk/src/cli/index.ts:13:3
     at callHandlingUnexpectedErrors (/snapshot/snyk/dist/cli/webpack:/snyk/src/lib/unexpected-error.ts:28:5)
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+
+                // Use Jenkins credentials for the Snyk API token
+                withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
+                    // Run Snyk test and explicitly specify the JSON output location
+                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux auth ${SNYK_TOKEN}"
+                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low --json-file-output=${WORKSPACE}/snyk_report.json"
+
+                    // Convert the Snyk JSON report to HTML
+                    sh "/var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i ${WORKSPACE}/snyk_report.json -o ${WORKSPACE}/snyk_report.html"
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+
+    post {
+        success {
+            // Archive the Snyk HTML report
+            archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
+            
+            // Send the email with the HTML report attached
+            emailext(
+                to: 'kanchanagm@stellaripl.com',
+                subject: "Jenkins Build: ${currentBuild.currentResult}: ${env.JOB_NAME}",
+                body: """${currentBuild.currentResult}: Job ${env.JOB_NAME}
+                More Info can be found here: ${env.BUILD_URL}""",
+                attachLog: true,
+                attachmentsPattern: 'snyk_report.html'
+            )
+        }
+    }
+}
+
