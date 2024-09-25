@@ -148,3 +148,69 @@ Notifications about newly disclosed issues related to these dependencies will be
 + snyk test --json
 Post stage
 
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"  
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Running Snyk Test...'
+                // Run Snyk Security test, which generates reports
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token'
+                )
+            }
+            post {
+                always {
+                    // Collect the JSON and HTML reports
+                    archiveArtifacts artifacts: '*.json, *.html', allowEmptyArchive: true
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Add your deploy steps here
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext (
+                subject: "Snyk Test Report - ${currentBuild.fullDisplayName}",
+                body: """
+                    Snyk test report is attached. 
+
+                    No known vulnerabilities detected.
+
+                    View full details in the attached HTML report.
+                """,
+                attachmentsPattern: "*.html",
+                to: 'recipient@example.com'
+            )
+        }
+    }
+}
+
