@@ -59,68 +59,22 @@ Manifest	package-lock.json
 No known vulnerabilities detected.      
          
   
-   pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"
-    }
+  Testing project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux test --json --severity-threshold=low
+Generating report...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-to-html-linux -i /var/lib/jenkins/workspace/snyk-email/2024-09-25T06-13-36-437552941Z_snyk_report.json
+Archiving artifacts
+Monitoring project...
+> /var/lib/jenkins/tools/io.snyk.jenkins.tools.SnykInstallation/snyk_latest/snyk-linux monitor --severity-threshold=low
 
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
+Monitoring /var/lib/jenkins/workspace/snyk-email (angular.io-example)...
 
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
+Explore this snapshot at https://app.snyk.io/org/stellar_org/project/dff06cd3-c7d1-402d-909d-465d57fa5124/history/34c88059-c927-45b2-983e-9305074f3349
 
-        stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                // Run Snyk Security test and output report in workspace
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token'
-                )
-                // Assuming Snyk generates an HTML report named snyk_report.html
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
+Notifications about newly disclosed issues related to these dependencies will be emailed to you.
 
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Sending Snyk Report via Email...'
-            // Sending email after successful build with the Snyk report attached
-            emailext(
-                subject: "Snyk Security Report for Job: ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
-                body: """
-                Hello,
-
-                Please find the attached Snyk Security report for the build job: ${env.JOB_NAME} [${env.BUILD_NUMBER}].
-
-                Best regards,
-                Jenkins CI
-                """,
-                to: 'recipient@example.com',
-                attachLog: true,
-                attachmentsPattern: 'snyk_report.html'
-            )
-        }
-    }
-}
+[Pipeline] archiveArtifacts
+Archiving artifacts
+‘snyk_report.html’ doesn’t match anything
+No artifacts found that match the file pattern "snyk_report.html". Configuration error?
 
