@@ -82,3 +82,61 @@ Notifications about newly disclosed issues related to these dependencies will be
 
 + mv /var/lib/jenkins/workspace/sny-email/*_snyk_report.json /var/lib/jenkins/workspace/snyk-email/snyk_report.json
 mv: cannot stat '/var/lib/jenkins/workspace/sny-email/*_snyk_report.json': No such file or directory
+
+pipeline {
+    agent any
+    tools { nodejs "npm" }
+    environment {
+        SNYK_API = "${env.SNYK_API}"
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building...'
+                sh "npm install"
+                sh "npm run build"
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: 'snyk-token',
+                    severityThreshold: 'low'
+                )
+            }
+        }
+        stage('Locate Snyk Report') {
+            steps {
+                echo 'Locating Snyk report...'
+                sh 'find ${WORKSPACE} -type f -name "*_snyk_report.json" || true'
+                sh 'find /var/lib/jenkins/workspace/ -type f -name "*_snyk_report.json" || true'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                // Your deploy steps go here
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Build succeeded. Sending email...'
+            mail to: "kanchanagm@stellaripl.com",
+                subject: "Jenkins Build: ${currentBuild.currentResult} - ${env.JOB_NAME}",
+                body: "${currentBuild.currentResult}: Job ${env.JOB_NAME}\nMore Info can be found here: ${env.BUILD_URL}"
+        }
+        failure {
+            echo 'Build failed.'
+        }
+    }
+}
+
