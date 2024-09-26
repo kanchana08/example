@@ -96,74 +96,9 @@ No artifacts found that match the file pattern "snyk_report.html". Configuration
 
 Reports
 2024-09-25T06-13-41-183002339Z         
-         
- pipeline {
-    agent any
-    tools { nodejs "npm" }
-    environment {
-        SNYK_API = "${env.SNYK_API}"
-    }
-
-    stages {
-        stage('checkout') {
-            steps {
-                git branch: 'master', credentialsId: 'PAT', url: 'https://git.stldev.io:1305/pradeepkumar.n/angular-ng.git'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building...'
-                sh "npm install"
-                sh "npm run build"
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running Snyk Test...'
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: 'snyk-token',
-                    additionalArguments: '--report --report-file=snyk_report.html'
-                )
-            }
-        }
-
-        stage('Rename Report') {
-            steps {
-                echo 'Renaming Snyk Report...'
-                // Rename the Snyk report to a fixed name
-                sh '''
-                    REPORT_FILE=$(ls *_snyk_report.html)
-                    mv $REPORT_FILE snyk_report.html
-                '''
-            }
-        }
-
-        stage('Archive Report') {
-            steps {
-                echo 'Archiving Snyk Report...'
-                archiveArtifacts artifacts: 'snyk_report.html', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
-                // Your deploy steps go here
-            }
-        }
-    }
-
-    post { 
-        success { 
-            echo 'Sending email...'
-            mail to: "kanchanagm@stellaripl.com", 
-                 subject: "Jenkins build: ${currentBuild.currentResult}: ${env.JOB_NAME}", 
-                 body: readFile('snyk_report.html'), 
-                 mimeType: 'text/html' // Send as HTML
-        }
-    }
-}
-        
+ Renaming Snyk Report...
+[Pipeline] sh
++ ls *_snyk_report.html
+ls: cannot access '*_snyk_report.html': No such file or directory
++ REPORT_FILE=        
+ 
