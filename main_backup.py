@@ -1,2 +1,2 @@
 # main_backup.py
-print("Hello from !")
+print("Hello from)
